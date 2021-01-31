@@ -1,2 +1,2 @@
-export * from './winston-logger/winston-logger.module';
-export * from './winston-logger/winston-logger.service';
+export * from './amqp/amqp.module';
+export * from './amqp/amqp.service';
