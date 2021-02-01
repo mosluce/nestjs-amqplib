@@ -1,29 +1,17 @@
 import { DynamicModule, Module } from '@nestjs/common';
-import { AMQP_MODULE_OPTIONS, AMQP_MODULE_UTIL_DELAY } from './amqp.constants';
+import { AMQP_MODULE_OPTIONS } from './amqp.constants';
 import { AmqpService } from './amqp.service';
 import { AmqpModuleAsyncOptions, AmqpModuleOptions } from './interfaces';
 
 @Module({})
 export class AmqpModule {
   static forRoot(options: AmqpModuleOptions): DynamicModule {
-    const { isGlobal, ...useExisting } = options;
+    const { isGlobal, ...useValue } = options;
 
     return {
       module: AmqpModule,
       global: isGlobal,
-      providers: [
-        { provide: AMQP_MODULE_OPTIONS, useExisting },
-        {
-          provide: AMQP_MODULE_UTIL_DELAY,
-          useFactory: () => (ms = 100) =>
-            new Promise<void>((resolve) =>
-              setTimeout(() => {
-                resolve();
-              }, ms),
-            ),
-        },
-        AmqpService,
-      ],
+      providers: [{ provide: AMQP_MODULE_OPTIONS, useValue }, AmqpService],
       exports: [AmqpService],
     };
   }

@@ -1,14 +1,13 @@
 import { WinstonLoggerService } from '@ccmos/nestjs-winston-logger';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import * as amqp from 'amqp-connection-manager';
 import { ConfirmChannel } from 'amqplib';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { filter, map, switchMap, take } from 'rxjs/operators';
-import { AMQP_MODULE_UTIL_DELAY } from './amqp.constants';
+import { filter, switchMap, take } from 'rxjs/operators';
+import { AMQP_MODULE_OPTIONS } from './amqp.constants';
 import { AmqpModuleOptions } from './interfaces';
 import {
   AmqpModuleConsumOptions,
-  AmqpModuleDelayFn,
   AmqpModuleEvent,
 } from './interfaces/amqp.types';
 
@@ -20,10 +19,8 @@ export class AmqpService {
   channelWrapper$ = new BehaviorSubject<amqp.ChannelWrapper>(null);
 
   constructor(
-    @Inject(AMQP_MODULE_UTIL_DELAY) private delay: AmqpModuleDelayFn,
-
-    private options: AmqpModuleOptions,
-    private logger?: WinstonLoggerService,
+    @Inject(AMQP_MODULE_OPTIONS) private options: AmqpModuleOptions,
+    @Optional() private logger?: WinstonLoggerService,
   ) {
     this.connect();
 
@@ -33,23 +30,15 @@ export class AmqpService {
   }
 
   async sendToQueue(queue: string, payload: any) {
-    return this.connection$
+    await this.channelWrapper$
       .pipe(
         filter((ch) => !!ch),
         take(1),
-        map((conn) =>
-          conn.createChannel({
-            json: true,
-            setup: async (ch: ConfirmChannel) => {
-              await ch.assertQueue(queue);
-            },
-          }),
-        ),
       )
       .toPromise()
       .then((ch) =>
         Promise.all([
-          ch.waitForConnect(),
+          ch.addSetup((ch: ConfirmChannel) => ch.assertQueue(queue)),
           ch.sendToQueue(queue, payload, {
             contentType: 'application/json',
             persistent: true,
@@ -59,23 +48,17 @@ export class AmqpService {
   }
 
   async publish(exchange: string, routingKey: string, payload: any) {
-    return this.connection$
+    await this.channelWrapper$
       .pipe(
         filter((ch) => !!ch),
         take(1),
-        map((conn) =>
-          conn.createChannel({
-            json: true,
-            setup: async (ch: ConfirmChannel) => {
-              await ch.assertExchange(exchange, 'topic');
-            },
-          }),
-        ),
       )
       .toPromise()
       .then((ch) =>
         Promise.all([
-          ch.waitForConnect(),
+          ch.addSetup((ch: ConfirmChannel) =>
+            ch.assertExchange(exchange, 'topic'),
+          ),
           ch.publish(exchange, routingKey, payload, {
             contentType: 'application/json',
             persistent: true,
@@ -137,7 +120,7 @@ export class AmqpService {
   }
 
   private async onConnectionError(error: Error) {
-    this.logger?.error('connection.error', {
+    this.logger?.warn('connection.error', {
       error: { message: error.message },
     });
 
