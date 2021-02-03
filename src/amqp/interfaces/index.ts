@@ -1,1 +1,1 @@
-export * from './amqp-options.interface';
+export * from './amqplib-options.interface';

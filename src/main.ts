@@ -1,2 +1,2 @@
-export * from './amqp/amqp.module';
-export * from './amqp/amqp.service';
+export * from './amqp/amqplib.module';
+export * from './amqp/amqplib.service';
