@@ -1,15 +1,15 @@
 import { ModuleMetadata } from '@nestjs/common';
 
-export interface AmqpModuleOptions {
-  urls: string[];
+export interface AmqplibModuleOptions {
+  url: string;
   isGlobal?: boolean;
 }
 
-export interface AmqpModuleAsyncOptions
+export interface AmqplibModuleAsyncOptions
   extends Pick<ModuleMetadata, 'imports'> {
   isGlobal?: boolean;
   useFactory?: (
     ...args: any[]
-  ) => Promise<AmqpModuleOptions> | AmqpModuleOptions;
+  ) => Promise<AmqplibModuleOptions> | AmqplibModuleOptions;
   inject?: any[];
 }
