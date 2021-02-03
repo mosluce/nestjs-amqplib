@@ -1,6 +1,6 @@
 {
   "name": "@ccmos/nestjs-amqplib",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "<p align=\"center\">   <a href=\"http://nestjs.com/\" target=\"blank\"><img src=\"https://nestjs.com/img/logo_text.svg\" width=\"320\" alt=\"Nest Logo\" /></a> </p>",
   "author": "mosluce@gmail.com",
   "main": "dist/main.js",
