@@ -1,5 +1,11 @@
 import { WinstonLoggerService } from '@ccmos/nestjs-winston-logger';
-import { Inject, Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import * as amqplib from 'amqplib';
 import { BehaviorSubject, from, Observable } from 'rxjs';
 import { filter, switchMap, take } from 'rxjs/operators';
@@ -8,10 +14,12 @@ import { AmqplibModuleOptions } from './interfaces';
 import {
   AmqplibModuleConsumOptions,
   AmqplibModuleEvent,
+  AmqplibModulePublishOptions,
+  AmqplibModuleSendToQueueOptions,
 } from './interfaces/amqplib.types';
 
 @Injectable()
-export class AmqplibService implements OnModuleInit {
+export class AmqplibService implements OnModuleInit, OnModuleDestroy {
   currentConnection: amqplib.Connection;
   terminated = false;
 
@@ -27,7 +35,13 @@ export class AmqplibService implements OnModuleInit {
     await this.connect();
   }
 
-  async sendToQueue(queue: string, payload: any) {
+  async onModuleDestroy() {
+    await this.terminate();
+  }
+
+  async sendToQueue(options: AmqplibModuleSendToQueueOptions) {
+    const { payload, queue, assertQueueOptions = { durable: true } } = options;
+
     const conn = await this.connection$
       .pipe(
         filter((conn) => !!conn),
@@ -37,14 +51,22 @@ export class AmqplibService implements OnModuleInit {
 
     const ch = await conn.createChannel();
 
-    await ch.assertQueue(queue);
+    await ch.assertQueue(queue, assertQueueOptions);
 
     ch.sendToQueue(queue, Buffer.from(JSON.stringify(payload)), {
       persistent: true,
     });
   }
 
-  async publish(exchange: string, routingKey: string, payload: any) {
+  async publish(options: AmqplibModulePublishOptions) {
+    const {
+      exchange,
+      exchangeType = 'topic',
+      payload,
+      routingKey,
+      exchangQueueOptions = { durable: true },
+    } = options;
+
     const conn = await this.connection$
       .pipe(
         filter((conn) => !!conn),
@@ -54,7 +76,7 @@ export class AmqplibService implements OnModuleInit {
 
     const ch = await conn.createChannel();
 
-    await ch.assertExchange(exchange, 'topic');
+    await ch.assertExchange(exchange, exchangeType, exchangQueueOptions);
 
     ch.publish(exchange, routingKey, Buffer.from(JSON.stringify(payload)), {
       persistent: true,
@@ -68,15 +90,25 @@ export class AmqplibService implements OnModuleInit {
         from(
           (async () => {
             const ch = await conn.createChannel();
-            const { queue, exchange, exchangeType, routingKey } = options;
+            const {
+              queue,
+              exchange,
+              exchangeType = 'topic',
+              routingKey,
+              bindOptions = {},
+              assertQueueOptions = { durable: true },
+              exchangQueueOptions = { durable: true },
+            } = options;
 
-            await ch.assertQueue(queue, { durable: true });
+            await ch.assertQueue(queue, exchangQueueOptions);
 
             if (exchange && routingKey) {
-              await ch.assertExchange(exchange, exchangeType, {
-                durable: true,
-              });
-              await ch.bindQueue(queue, exchange, routingKey);
+              await ch.assertExchange(
+                exchange,
+                exchangeType,
+                assertQueueOptions,
+              );
+              await ch.bindQueue(queue, exchange, routingKey, bindOptions);
             }
 
             return ch;
@@ -93,7 +125,7 @@ export class AmqplibService implements OnModuleInit {
               payload: JSON.parse(content.toString()),
               meta: meta as any,
               ack: () => ch.ack(message),
-              nack: (options) =>
+              nack: (options = { requeue: false, allUpTo: false }) =>
                 ch.nack(message, options.allUpTo, options.requeue),
             };
             observer.next(event);

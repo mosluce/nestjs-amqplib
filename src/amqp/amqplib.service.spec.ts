@@ -30,7 +30,10 @@ describe('AmqplibService', () => {
 
   it('sendToQueue and consume', async () => {
     await service.connect();
-    await service.sendToQueue('testQueue', { hello: 'queue' });
+    await service.sendToQueue({
+      queue: 'testQueue',
+      payload: { hello: 'queue' },
+    });
 
     const event = await service
       .consume({ queue: 'testQueue' })
@@ -51,7 +54,6 @@ describe('AmqplibService', () => {
         queue: 'testQueue',
         exchange: 'testExchange',
         routingKey: 'testRoutingKey',
-        exchangeType: 'topic',
       })
       .pipe(take(1))
       .subscribe(async (event) => {
@@ -63,8 +65,12 @@ describe('AmqplibService', () => {
         done();
       });
 
-    await service.publish('testExchange', 'testRoutingKey', {
-      hello: 'exchange',
+    await service.publish({
+      exchange: 'testExchange',
+      routingKey: 'testRoutingKey',
+      payload: {
+        hello: 'exchange',
+      },
     });
   });
 });
@@ -81,6 +87,8 @@ describe('import module', () => {
     }).compile();
 
     app = module.createNestApplication();
+
+    await app.init();
   });
 
   it('app should be defined', () => {
@@ -104,6 +112,8 @@ describe('import module async', () => {
     }).compile();
 
     app = module.createNestApplication();
+
+    await app.init();
   });
 
   it('app should be defined', () => {

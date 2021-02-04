@@ -1,19 +1,38 @@
+import { Options } from 'amqplib';
+
 export type AmqplibModuleDelayFn = (ms: number) => Promise<void>;
 
-export class AmqplibModuleConsumOptions {
+export interface AmqplibModuleConsumOptions {
   queue: string;
   exchange?: string;
-  exchangeType? = 'topic';
+  exchangeType?: 'topic' | 'direct';
   routingKey?: string;
+  assertQueueOptions?: Options.AssertQueue;
+  exchangQueueOptions?: Options.AssertExchange;
+  bindOptions?: any;
 }
 
-export class AmqplibModuleEventNackOptions {
-  requeue = false;
-  allUpTo = false;
+export interface AmqplibModulePublishOptions {
+  exchange: string;
+  exchangeType?: 'topic' | 'direct';
+  routingKey: string;
+  payload: any;
+  exchangQueueOptions?: Options.AssertExchange;
 }
-export class AmqplibModuleEvent<Body = any, Meta = any> {
+
+export interface AmqplibModuleSendToQueueOptions {
+  queue: string;
+  payload: any;
+  assertQueueOptions?: Options.AssertQueue;
+}
+
+export interface AmqplibModuleEventNackOptions {
+  requeue?: boolean;
+  allUpTo?: boolean;
+}
+export interface AmqplibModuleEvent<Body = any, Meta = any> {
   ack: () => void;
-  nack: (options: AmqplibModuleEventNackOptions) => void;
+  nack: (options?: AmqplibModuleEventNackOptions) => void;
   payload: Body;
   meta?: Meta;
 }

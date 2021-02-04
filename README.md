@@ -29,44 +29,44 @@
 ## Installation
 
 ```bash
-$ npm install
+$ npm install @ccmos/nestjs-amqplib
 ```
 
-## Running the app
+## Quick Start
 
-```bash
-# development
-$ npm run start
+```js
+// import
+import { Module } from '@nestjs/common';
+import { AmqplibModule } from '@ccmos/nestjs-amqplib';
 
-# watch mode
-$ npm run start:dev
+@Module({
+  imports: [
+    AmqplibModule.forRoot({
+      url: 'amqp://localhost'
+    }),
+  ],
+})
+export class AppModule {}
 
-# production mode
-$ npm run start:prod
+// service
+import { Injectable } from '@nestjs/common';
+import { AmqplibService } from '@ccmos/nestjs-amqplib';
+
+@Injectable()
+export class MyService {
+  constructor(
+    private amqplib: AmqplibService,
+  ) {  }
+
+  async helloWorld() {
+    await amqplib.sendToQueue('testQueue', { hello: 'queue' });
+    await service.publish('testExchange', 'testRoutingKey', {
+      hello: 'exchange',
+    });
+
+  }
+}
 ```
-
-## Test
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
 
 ## License
 
