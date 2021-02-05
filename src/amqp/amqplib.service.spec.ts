@@ -22,14 +22,17 @@ describe('AmqplibService', () => {
     }).compile();
 
     service = module.get<AmqplibService>(AmqplibService);
+
+    await service.connect();
   });
+
+  afterEach(async () => service.terminate());
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
   it('sendToQueue and consume', async () => {
-    await service.connect();
     await service.sendToQueue({
       queue: 'testQueue',
       payload: { hello: 'queue' },
@@ -42,13 +45,9 @@ describe('AmqplibService', () => {
 
     event.ack();
     await delay(100);
-
-    await service.terminate();
   });
 
   it('publish and consume', async (done) => {
-    await service.connect();
-
     service
       .consume({
         queue: 'testQueue',
@@ -59,8 +58,6 @@ describe('AmqplibService', () => {
       .subscribe(async (event) => {
         event.ack();
         await delay(500);
-
-        await service.terminate();
 
         done();
       });

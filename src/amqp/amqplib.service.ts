@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import * as amqplib from 'amqplib';
 import { BehaviorSubject, from, Observable } from 'rxjs';
-import { filter, switchMap, take } from 'rxjs/operators';
+import { filter, mergeMap, switchMap, take } from 'rxjs/operators';
 import { AMQPLIB_MODULE_OPTIONS } from './amqplib.constants';
 import { AmqplibModuleOptions } from './interfaces';
 import {
@@ -20,7 +20,6 @@ import {
 
 @Injectable()
 export class AmqplibService implements OnModuleInit, OnModuleDestroy {
-  currentConnection: amqplib.Connection;
   terminated = false;
 
   connection$ = new BehaviorSubject<amqplib.Connection>(null);
@@ -136,12 +135,19 @@ export class AmqplibService implements OnModuleInit, OnModuleDestroy {
   }
 
   async connect() {
-    const conn = await amqplib.connect(this.options.url);
+    let conn: amqplib.Connection;
+
+    while (conn === undefined) {
+      try {
+        conn = await amqplib.connect(this.options.url);
+      } catch {
+        continue;
+      }
+    }
 
     conn.on('error', this.onConnectionError.bind(this));
     conn.on('close', this.onConnectionClose.bind(this));
 
-    this.currentConnection = conn;
     this.connection$.next(conn);
 
     return conn;
@@ -150,7 +156,13 @@ export class AmqplibService implements OnModuleInit, OnModuleDestroy {
   async terminate() {
     this.terminated = true;
 
-    await this.currentConnection?.close();
+    return this.connection$
+      .pipe(
+        filter((conn) => !!conn),
+        take(1),
+        mergeMap((conn) => conn.close()),
+      )
+      .toPromise();
   }
 
   private async onConnectionError(error: Error) {
