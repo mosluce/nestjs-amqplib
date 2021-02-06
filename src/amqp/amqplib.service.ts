@@ -96,16 +96,16 @@ export class AmqplibService implements OnModuleInit, OnModuleDestroy {
               routingKey,
               bindOptions = {},
               assertQueueOptions = { durable: true },
-              exchangQueueOptions = { durable: true },
+              assertExchangOptions = { durable: true },
             } = options;
 
-            await ch.assertQueue(queue, exchangQueueOptions);
+            await ch.assertQueue(queue, assertQueueOptions);
 
             if (exchange && routingKey) {
               await ch.assertExchange(
                 exchange,
                 exchangeType,
-                assertQueueOptions,
+                assertExchangOptions,
               );
               await ch.bindQueue(queue, exchange, routingKey, bindOptions);
             }

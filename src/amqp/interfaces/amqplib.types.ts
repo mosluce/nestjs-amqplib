@@ -8,7 +8,7 @@ export interface AmqplibModuleConsumOptions {
   exchangeType?: 'topic' | 'direct';
   routingKey?: string;
   assertQueueOptions?: Options.AssertQueue;
-  exchangQueueOptions?: Options.AssertExchange;
+  assertExchangOptions?: Options.AssertExchange;
   bindOptions?: any;
 }
 
